@@ -88,10 +88,14 @@
     .button:hover {
       background: #c07d02;
     }
+  /* block + margin auto: asi la imagen ocupa su propia linea y el logo
+     animado cae debajo. Antes era inline y se ponia a su lado, que es lo
+     que compensaba el <br>. */
   .tp{
+    display: block;
     width: 200px;
     height: 160px;
-
+    margin: 0 auto;
   }
 
   /* Efecto cortina para TI → Tapir Industries */
@@ -104,12 +108,26 @@
 
   .logo-expandable .letter {
     display: inline-block;
-    transition: opacity 0.3s ease;
+    overflow: hidden;
+    max-width: 2ch;
+    transition: opacity 0.3s ease, max-width 0.4s ease;
+  }
+
+  /* El texto desplegado ya trae "Tapir" e "Industries" completos, asi que la
+     T y la I iniciales sobran en cuanto empieza a abrirse la cortina. */
+  .logo-expandable:hover .letter {
+    opacity: 0;
+  }
+
+  /* El estado por clic hace lo mismo de forma permanente: el texto sigue
+     superpuesto, asi que basta con ocultarlas. */
+  .logo-expandable.expanded .letter {
+    opacity: 0;
   }
 
   .logo-expandable .expanded-text {
     position: absolute;
-    left: 0;
+    left: 50%;
     top: 0;
     display: flex;
     font-size: 80px;
@@ -117,7 +135,7 @@
     color: white;
     filter: drop-shadow(0 0 10px #FFA500);
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translate(-50%, -100%);
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: none;
     white-space: nowrap;
@@ -141,36 +159,35 @@
 
   .logo-expandable:hover .expanded-text {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
 
   .logo-expandable:hover .expanded-part:nth-of-type(1) {
-    max-width: 200px;
+    max-width: 4em;
     transition-delay: 0.1s;
   }
 
   .logo-expandable:hover .expanded-part:nth-of-type(3) {
-    max-width: 400px;
+    max-width: 7em;
     transition-delay: 0.4s;
   }
 
   .logo-expandable:hover .space {
-    width: 20px;
+    width: 0.25em;
   }
 
   /* Estado expandido permanente */
   .logo-expandable.expanded .expanded-text {
     opacity: 1;
-    transform: translateY(0);
-    position: relative;
+    transform: translate(-50%, 0);
   }
 
   .logo-expandable.expanded .expanded-part {
-    max-width: 500px;
+    max-width: 8em;
   }
 
   .logo-expandable.expanded .space {
-    width: 20px;
+    width: 0.25em;
   }
  @media (min-width: 993px) and (max-width: 1200px){
 footer {
@@ -226,7 +243,8 @@ footer {
         <div class="container">
           <img src="img/tapir.png" class="tp">
           <div class="logo logo-expandable" id="logoTI">
-            <br>
+
+      
             <span class="letter letter-t">T</span><span class="letter letter-i">I</span>
             <span class="expanded-text">
               <span class="expanded-part">Tapir</span>
@@ -235,8 +253,8 @@ footer {
             </span>
           </div>
           <br>
-          <h1 >TAPIR INDIUSTRIES</h1>
-          <small>copyright © - 2025</small>
+
+          <small>copyright © - 2026</small>
           <p>Mantenimiento<strong> atencion al cliente y soporte en general.</strong></p><br>
           <a class="button" href="pages/menu.html" title="menu">INICIAR</a>
           <a class="button" href="carga.html" title="sprite">SPRITE</a>
