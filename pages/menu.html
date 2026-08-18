@@ -1147,7 +1147,13 @@ body {
             }
         }
 
+        /* ---- Tapir dentro de la carcasa Game Boy (img/sprite/carcasa.png) ----
+           La carcasa mide 603x942 px. El hueco de la pantalla verde esta en
+           x:133..468  y:135..392  ->  336x258 px, de ahi los % de .mini-tapir-screen. */
         .mini-tapir-widget {
+            --gb-w: 138px;
+            --gb-h: 216px;   /* 138 * 942/603 */
+            --gb-scale: 0.21;
             position: fixed;
             left: 18px;
             bottom: 18px;
@@ -1158,46 +1164,71 @@ body {
             pointer-events: none;
         }
 
+        /* El propio boton es la carcasa, asi .mini-tapir-talk sigue siendo su hermano adyacente */
         .mini-tapir-button {
             position: relative;
-            width: 126px;
-            height: 94px;
+            width: var(--gb-w);
+            height: var(--gb-h);
             padding: 0;
             overflow: visible;
-            background: transparent;
             border: 0;
+            background: transparent url("../img/sprite/carcasa.png") no-repeat center / 100% 100%;
             cursor: pointer;
             pointer-events: auto;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.42));
+            transition: transform 180ms ease, filter 180ms ease;
+        }
+
+        :root[data-theme='dark'] .mini-tapir-button {
+            background-image: url("../img/sprite/carcasa-night.png");
+        }
+
+        .mini-tapir-button:hover,
+        .mini-tapir-button:focus-visible,
+        .mini-tapir-widget.is-alert .mini-tapir-button {
+            transform: translateY(-3px);
+            filter: drop-shadow(0 14px 14px rgba(255, 117, 31, 0.44));
+        }
+
+        /* Hueco exacto de la pantalla dentro del PNG */
+        .mini-tapir-screen {
+            position: absolute;
+            left: 22.056%;
+            top: 14.331%;
+            width: 55.721%;
+            height: 27.389%;
+            overflow: hidden;
         }
 
         .mini-tapir-sprite {
             position: absolute;
-            left: 0;
+            left: 50%;
             bottom: 0;
             width: 384px;
             height: 256px;
-            background-image: url("../img/sprite/tapir-idle.png");
+            margin-left: -192px;
+            background-image: url("../img/sprite/tapir-idle-alpha.png");
             background-repeat: no-repeat;
             background-size: 1536px 1024px;
-            filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.5));
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            transform: scale(0.32);
-            transform-origin: left bottom;
-            transition: transform 180ms ease, filter 180ms ease;
+            transform: scale(var(--gb-scale));
+            transform-origin: bottom center;
+            transition: transform 180ms ease;
         }
 
         .mini-tapir-button:hover .mini-tapir-sprite,
         .mini-tapir-button:focus-visible .mini-tapir-sprite,
         .mini-tapir-widget.is-alert .mini-tapir-sprite {
-            filter: drop-shadow(0 14px 12px rgba(255, 117, 31, 0.44));
-            transform: scale(0.35) translateY(-3px);
+            transform: scale(calc(var(--gb-scale) * 1.07));
         }
 
         .mini-tapir-talk {
             position: relative;
-            width: min(220px, calc(100vw - 156px));
-            margin-bottom: 58px;
+            width: min(220px, calc(100vw - 190px));
+            /* 0.6 * alto de la carcasa deja la flecha a la altura de la pantalla */
+            margin-bottom: calc(var(--gb-h) * 0.6);
             padding: 10px 12px;
             background: var(--blanco-palido);
             border: 2px solid #000000;
@@ -1244,30 +1275,25 @@ body {
             border-color: var(--blanco-palido);
         }
 
+        @media (prefers-reduced-motion: reduce) {
+            .mini-tapir-button,
+            .mini-tapir-sprite,
+            .mini-tapir-talk {
+                transition: none;
+            }
+        }
+
         @media (max-width: 520px) {
             .mini-tapir-widget {
+                --gb-w: 104px;
+                --gb-h: 162px;
+                --gb-scale: 0.16;
                 left: 10px;
                 bottom: 10px;
             }
 
-            .mini-tapir-button {
-                width: 94px;
-                height: 70px;
-            }
-
-            .mini-tapir-sprite {
-                transform: scale(0.24);
-            }
-
-            .mini-tapir-button:hover .mini-tapir-sprite,
-            .mini-tapir-button:focus-visible .mini-tapir-sprite,
-            .mini-tapir-widget.is-alert .mini-tapir-sprite {
-                transform: scale(0.26) translateY(-3px);
-            }
-
             .mini-tapir-talk {
-                width: min(190px, calc(100vw - 112px));
-                margin-bottom: 42px;
+                width: min(190px, calc(100vw - 150px));
                 font-size: 0.78rem;
             }
         }
@@ -1413,7 +1439,9 @@ body {
 
     <aside class="mini-tapir-widget" aria-label="Asistente visual de Tapir Industries">
         <button class="mini-tapir-button" type="button" aria-label="Escuchar al asistente Tapir">
-            <span class="mini-tapir-sprite" aria-hidden="true"></span>
+            <span class="mini-tapir-screen" aria-hidden="true">
+                <span class="mini-tapir-sprite"></span>
+            </span>
         </button>
         <p class="mini-tapir-talk" aria-live="polite">Hola, reviso la ruta contigo.</p>
     </aside>
@@ -1516,14 +1544,14 @@ animate();
       6, 7, 7, 6, 5, 4, 3, 2, 1, 0
     ];
     const frameBounds = [
-      { left: 48, right: 366, bottom: 472 },
-      { left: 51, right: 357, bottom: 473 },
-      { left: 39, right: 351, bottom: 475 },
-      { left: 14, right: 340, bottom: 476 },
-      { left: 67, right: 367, bottom: 317 },
-      { left: 27, right: 356, bottom: 319 },
-      { left: 24, right: 347, bottom: 319 },
-      { left: 14, right: 330, bottom: 317 },
+      { left: 45, right: 368, bottom: 475 },
+      { left: 33, right: 344, bottom: 475 },
+      { left: 26, right: 332, bottom: 473 },
+      { left: 17, right: 335, bottom: 472 },
+      { left: 54, right: 368, bottom: 317 },
+      { left: 36, right: 359, bottom: 319 },
+      { left: 27, right: 355, bottom: 319 },
+      { left: 16, right: 315, bottom: 317 },
     ];
     const messages = [
       'Si algo falla, lo diagnosticamos claro.',

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mascota Tapir · Consola — Tapir Industries</title>
+  <link rel="icon" href="../img/tapir.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================================================
+       DEMO - el tapir dentro de una consola manejable
+
+       La carcasa es img/sprite/carcasa.png (603 x 942 px). Cada zona se
+       posiciona en % sobre ese PNG, medidos directamente sobre la imagen:
+
+         pantalla   x:133..468  y:135..392   -> 22.056% 14.331% 55.721% 27.389%
+         D-pad      x: 56..208  y:551..704   ->  9.290% 58.490% 25.370% 16.350%
+         boton A    x:472..546  y:551..626   -> 78.280% 58.490% 12.440%  8.070%
+         boton B    x:368..442  y:604..678   -> 61.030% 64.120% 12.440%  7.960%
+         select     x:212..286  y:760..782   -> 35.160% 80.680% 12.440%  2.440%
+         start      x:316..390  y:760..782   -> 52.400% 80.680% 12.440%  2.440%
+         LED        x: 81..105  y:187..211   -> 13.430% 19.850%  4.150%  2.650%
+       ========================================================================= */
+
+    :root {
+      --terracota: #D9762F;
+      --bg: #f3f4f6;
+      --text: #111827;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --line: rgba(0, 0, 0, .12);
+
+      /* paleta de la pantalla, tomada del propio PNG */
+      --lcd: #9e9d24;
+      --lcd-ink: #2b2a08;
+      --lcd-box: #cfce7e;
+    }
+
+    :root[data-theme='dark'] {
+      --bg: #0b1220;
+      --text: #e6eef8;
+      --card: #111a2e;
+      --muted: #9aa6b2;
+      --line: rgba(255, 255, 255, .14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 28px 16px 56px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      transition: background 250ms ease, color 250ms ease;
+    }
+
+    /* ---------- cabecera ---------- */
+    .page-head {
+      width: min(860px, 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .page-head h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 3.6vw, 1.5rem);
+      letter-spacing: .02em;
+    }
+
+    .page-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    .head-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--text);
+      font: inherit;
+      font-size: .85rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease;
+    }
+
+    .link-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--terracota);
+    }
+
+    /* ---------- la consola ---------- */
+    .gb {
+      --gb-w: min(320px, 82vw);
+      --s: 0.27;
+      --x: 50%;
+      --flip: 1;
+      --jump: 0px;
+      position: relative;
+      width: var(--gb-w);
+      height: calc(var(--gb-w) * 942 / 603);
+      flex: none;
+      background: url("../img/sprite/carcasa.png") no-repeat center / 100% 100%;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .38));
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* ---------- pantalla ---------- */
+    .gb-screen {
+      position: absolute;
+      left: 22.056%;
+      top: 14.331%;
+      width: 55.721%;
+      height: 27.389%;
+      overflow: hidden;
+      background: var(--lcd);
+    }
+
+    .gb-actor {
+      position: absolute;
+      left: var(--x);
+      /* el tapir se apoya justo encima de la caja de dialogo, estilo RPG */
+      bottom: 37%;
+      width: 0;
+      height: 0;
+      transform: translateY(var(--jump));
+      transition: left 90ms linear, transform 160ms cubic-bezier(.3, 1.6, .5, 1);
+    }
+
+    /* el sheet es 1536x1024: rejilla 4x2 de frames de 384x512.
+       El span muestra los 256 px inferiores del frame, que es donde va el tapir. */
+    .gb-sprite {
+      position: absolute;
+      left: -192px;
+      bottom: 0;
+      width: 384px;
+      height: 256px;
+      background-repeat: no-repeat;
+      background-size: 1536px 1024px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      transform: scale(var(--s)) scaleX(var(--flip));
+      transform-origin: bottom center;
+    }
+
+    /* rejilla LCD */
+    .gb-scan {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, .13) 0 1px, transparent 1px 3px),
+        radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, .18), transparent 65%);
+      mix-blend-mode: multiply;
+      opacity: .75;
+    }
+
+    /* caja de dialogo estilo RPG */
+    .gb-dialog {
+      position: absolute;
+      left: 4%;
+      right: 4%;
+      bottom: 4%;
+      min-height: 32%;
+      padding: 6% 7% 6% 6%;
+      background: var(--lcd-box);
+      border: 2px solid var(--lcd-ink);
+      color: var(--lcd-ink);
+      font-family: "Press Start 2P", ui-monospace, "Courier New", monospace;
+      font-size: clamp(4px, 1.55vw, 7px);
+      line-height: 1.75;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .gb.is-talking .gb-dialog {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .gb-dialog .caret {
+      position: absolute;
+      right: 5%;
+      bottom: 6%;
+      animation: blink 900ms steps(1) infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* pantalla apagada */
+    .gb-off {
+      position: absolute;
+      inset: 0;
+      background: #23260d;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+
+    .gb.is-off .gb-off {
+      opacity: 1;
+    }
+
+    /* LED de encendido, justo sobre el rectangulo rosa del PNG */
+    .gb-led {
+      position: absolute;
+      left: 13.43%;
+      top: 19.85%;
+      width: 4.15%;
+      height: 2.65%;
+      background: #ff2d6f;
+      box-shadow: 0 0 6px 2px rgba(255, 45, 111, .75);
+      transition: background 220ms ease, box-shadow 220ms ease;
+    }
+
+    .gb.is-off .gb-led {
+      background: #5c2033;
+      box-shadow: none;
+    }
+
+    /* ---------- botones invisibles sobre el PNG ---------- */
+    .gb-btn {
+      position: absolute;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .gb-btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, .32);
+      opacity: 0;
+      transition: opacity 90ms ease;
+    }
+
+    .gb-btn:is(:hover, :focus-visible)::after {
+      opacity: .35;
+    }
+
+    .gb-btn.is-down::after {
+      opacity: 1;
+      background: rgba(0, 0, 0, .3);
+    }
+
+    .gb-btn:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 1px;
+    }
+
+    /* el D-pad se divide en 4 zonas dentro de su bbox */
+    .gb-dpad {
+      position: absolute;
+      left: 9.29%;
+      top: 58.49%;
+      width: 25.37%;
+      height: 16.35%;
+    }
+
+    .dp-up {
+      left: 33%;
+      top: 0;
+      width: 34%;
+      height: 34%;
+    }
+
+    .dp-down {
+      left: 33%;
+      top: 66%;
+      width: 34%;
+      height: 34%;
+    }
+
+    .dp-left {
+      left: 0;
+      top: 33%;
+      width: 34%;
+      height: 34%;
+    }
+
+    .dp-right {
+      left: 66%;
+      top: 33%;
+      width: 34%;
+      height: 34%;
+    }
+
+    .btn-a {
+      left: 78.28%;
+      top: 58.49%;
+      width: 12.44%;
+      height: 8.07%;
+    }
+
+    .btn-b {
+      left: 61.03%;
+      top: 64.12%;
+      width: 12.44%;
+      height: 7.96%;
+    }
+
+    .btn-select {
+      left: 35.16%;
+      top: 80.68%;
+      width: 12.44%;
+      height: 2.44%;
+    }
+
+    .btn-start {
+      left: 52.40%;
+      top: 80.68%;
+      width: 12.44%;
+      height: 2.44%;
+    }
+
+    /* ---------- panel lateral ---------- */
+    .stage {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: min(860px, 100%);
+    }
+
+    .panel {
+      flex: 1 1 280px;
+      min-width: 260px;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .card {
+      padding: 16px 18px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: .78rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 12px;
+      font-size: .86rem;
+      align-items: center;
+    }
+
+    kbd {
+      display: inline-block;
+      min-width: 22px;
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      background: var(--bg);
+      font: 600 .76rem/1 ui-monospace, monospace;
+      text-align: center;
+    }
+
+    .swatches {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .swatch {
+      width: 38px;
+      height: 38px;
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease;
+    }
+
+    .swatch:hover {
+      transform: translateY(-3px);
+    }
+
+    .swatch[aria-pressed="true"] {
+      border-color: var(--text);
+      transform: translateY(-3px);
+    }
+
+    .readout {
+      margin: 0;
+      font: 600 .8rem/1.7 ui-monospace, monospace;
+      color: var(--muted);
+    }
+
+    .readout b {
+      color: var(--text);
+    }
+
+    .note {
+      width: min(860px, 100%);
+      margin: 0;
+      padding: 14px 16px;
+      border-left: 3px solid var(--terracota);
+      background: var(--card);
+      border-radius: 0 10px 10px 0;
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .gb-actor,
+      .gb-dialog,
+      .link-btn,
+      .swatch {
+        transition: none;
+      }
+
+      .gb-dialog .caret {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .panel {
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="page-head">
+    <div>
+      <h1>Mascota Tapir · consola</h1>
+      <p>Demo para decidir si el menú se queda con esta versión</p>
+    </div>
+    <div class="head-actions">
+      <button class="link-btn" type="button" id="themeToggle">◐ Día / noche</button>
+      <a class="link-btn" href="menu.html">← Volver al menú</a>
+    </div>
+  </header>
+
+  <div class="stage">
+    <!-- ================= LA CONSOLA ================= -->
+    <div class="gb" id="gb">
+      <div class="gb-led" aria-hidden="true"></div>
+
+      <div class="gb-screen">
+        <div class="gb-actor" id="actor">
+          <span class="gb-sprite" id="sprite"></span>
+        </div>
+        <div class="gb-dialog" id="dialog">
+          <span id="dialogText"></span><span class="caret">▼</span>
+        </div>
+        <div class="gb-scan" aria-hidden="true"></div>
+        <div class="gb-off" aria-hidden="true"></div>
+      </div>
+
+      <div class="gb-dpad">
+        <button class="gb-btn dp-up" data-act="up" aria-label="Saltar"></button>
+        <button class="gb-btn dp-down" data-act="down" aria-label="Pausar la animación"></button>
+        <button class="gb-btn dp-left" data-act="left" aria-label="Caminar a la izquierda"></button>
+        <button class="gb-btn dp-right" data-act="right" aria-label="Caminar a la derecha"></button>
+      </div>
+
+      <button class="gb-btn btn-a" data-act="a" aria-label="A: siguiente mensaje"></button>
+      <button class="gb-btn btn-b" data-act="b" aria-label="B: saludar"></button>
+      <button class="gb-btn btn-select" data-act="select" aria-label="Select: cambiar color de carcasa"></button>
+      <button class="gb-btn btn-start" data-act="start" aria-label="Start: encender o apagar"></button>
+    </div>
+
+    <!-- ================= PANEL ================= -->
+    <div class="panel">
+      <div class="card">
+        <h2>Controles</h2>
+        <div class="keys">
+          <kbd>←</kbd><span>Camina a la izquierda</span>
+          <kbd>→</kbd><span>Camina a la derecha</span>
+          <kbd>↑</kbd><span>Salta</span>
+          <kbd>↓</kbd><span>Pausa la animación</span>
+          <kbd>A</kbd><span>Siguiente mensaje</span>
+          <kbd>B</kbd><span>Saluda</span>
+          <kbd>Enter</kbd><span>Start: encender / apagar</span>
+          <kbd>Shift</kbd><span>Select: color de carcasa</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Color de carcasa</h2>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="card">
+        <h2>Estado</h2>
+        <p class="readout" id="readout"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    La consola es <code>img/sprite/carcasa.png</code> a tamaño completo y todas las zonas se posicionan en
+    porcentajes sobre ella, así que escala sin descuadrarse. Las carcasas de color se generaron desde ese mismo
+    PNG conservando el bisel y la pantalla. Por ahora todo sale de <code>tapir-idle-alpha.png</code>: caminar,
+    saltar y hablar reciclan sus 8 frames a distinta velocidad, y en el bloque <code>ANIM</code> del script está
+    el hueco listo para enganchar animaciones propias cuando las tengas.
+  </p>
+
+  <script>
+    (function () {
+      const gb = document.getElementById('gb');
+      const sprite = document.getElementById('sprite');
+      const dialogText = document.getElementById('dialogText');
+      const readout = document.getElementById('readout');
+      const swatches = document.getElementById('swatches');
+
+      /* Rejilla del sheet: 1536x1024 = 4 columnas x 2 filas de frames de 384x512.
+         El span visible son los 256 px inferiores del frame. */
+      const SHEET = '../img/sprite/tapir-idle-alpha.png';
+      const FW = 384, FH = 512, COLS = 4;
+      const TARGET_CX = 192;   // centro horizontal dentro del span
+      const TARGET_BY = 236;   // linea de suelo dentro del span de 256 px
+      const CHAR_H = 205;      // alto real del tapir dibujado, para escalarlo
+
+      /* Cada pose ocupa una zona distinta de su celda; sin estos bounds el tapir
+         pega saltos al cambiar de frame. Medidos por alpha sobre el sheet. */
+      const BOUNDS = [
+        { left: 45, right: 368, bottom: 475 }, { left: 33, right: 344, bottom: 475 },
+        { left: 26, right: 332, bottom: 473 }, { left: 17, right: 335, bottom: 472 },
+        { left: 54, right: 368, bottom: 317 }, { left: 36, right: 359, bottom: 319 },
+        { left: 27, right: 355, bottom: 319 }, { left: 16, right: 315, bottom: 317 }
+      ];
+
+      /* ---------------------------------------------------------------------
+         ANIMACIONES
+
+         Por ahora hay un solo sheet, asi que cada accion recicla los mismos 8
+         frames del idle cambiando el orden y la velocidad.
+
+         Cuando existan animaciones propias, cada entrada admite ademas:
+
+             src:    ruta del PNG        (si falta, usa SHEET)
+             bounds: array de bounds     (si falta, usa BOUNDS)
+             charH:  alto del personaje  (si falta, usa CHAR_H)
+             once:   true -> se reproduce una vez y vuelve a 'idle'
+
+         ...y no hay que tocar nada mas: setAnim() ya lo resuelve.
+         --------------------------------------------------------------------- */
+      const ANIM = {
+        idle: { seq: [0, 0, 1, 1, 2, 3, 4, 4, 5, 6, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0], ms: 130 },
+        walk: { seq: [0, 1, 2, 3, 4, 5, 6, 7], ms: 70 },
+        jump: { seq: [4, 5, 6, 7], ms: 90, once: true },
+        talk: { seq: [0, 1, 2, 1], ms: 165 }
+      };
+
+      const SHELLS = [
+        { id: 'ámbar', css: '#ffc107', src: '../img/sprite/carcasa.png' },
+        { id: 'índigo', css: '#5c6bc0', src: '../img/sprite/carcasa-night.png' },
+        { id: 'celeste', css: '#1b97af', src: '../img/sprite/carcasa-celeste.png' },
+        { id: 'verde', css: '#71e329', src: '../img/sprite/carcasa-verde.png' },
+        { id: 'rosa', css: '#fe3d7e', src: '../img/sprite/carcasa-rosa.png' }
+      ];
+
+      const MESSAGES = [
+        'Diagnostico gratis, sin rodeos.',
+        'WhatsApp: 33 5047 6514.',
+        'Tambien vamos a domicilio.',
+        'Un mantenimiento a tiempo evita sustos.',
+        'Armamos equipos a tu medida.',
+        'El D-pad me mueve por la pantalla.'
+      ];
+      const SALUDOS = [
+        'Hola, soy tu Tapir guia.',
+        'Por aqui ando, dime.',
+        'Listo para ayudarte.'
+      ];
+
+      /* ---------------- estado ---------------- */
+      let shell = 0, msg = 0;
+      let anim = 'idle', frameIdx = 0, lastTick = 0;
+      let paused = false, power = true;
+      let posX = 50, facing = 1;
+      let typeTimer = 0, hideTimer = 0, jumpTimer = 0, walkTimer = 0;
+
+      const cur = () => ANIM[anim];
+
+      /* ---------------- render ---------------- */
+      function showFrame(f) {
+        const b = (cur().bounds || BOUNDS)[f];
+        if (!b) return;
+        const col = f % COLS, row = Math.floor(f / COLS);
+        const cx = (b.left + b.right) / 2;
+        sprite.style.backgroundPosition =
+          `${-(col * FW) + (TARGET_CX - cx)}px ${-(row * FH) + (TARGET_BY - b.bottom)}px`;
+      }
+
+      function setAnim(name) {
+        if (anim === name || !ANIM[name]) return;
+        anim = name;
+        frameIdx = 0;
+        const a = ANIM[name];
+        sprite.style.backgroundImage = `url("${a.src || SHEET}")`;
+        fit();
+        showFrame(a.seq[0]);
+        updateReadout();
+      }
+
+      /* La escala sale del alto real de la pantalla, asi la consola se puede
+         redimensionar sin que el tapir se salga ni pise la caja de dialogo. */
+      function fit() {
+        const h = gb.querySelector('.gb-screen').clientHeight;
+        if (h) gb.style.setProperty('--s', (h * 0.40 / (cur().charH || CHAR_H)).toFixed(4));
+      }
+
+      function loadShell() {
+        gb.style.backgroundImage = `url("${SHELLS[shell].src}")`;
+        [...swatches.children].forEach((b, i) =>
+          b.setAttribute('aria-pressed', String(i === shell)));
+        updateReadout();
+      }
+
+      function updateReadout() {
+        readout.innerHTML =
+          `carcasa <b>${SHELLS[shell].id}</b><br>` +
+          `animación <b>${anim}</b><br>` +
+          `posición x <b>${posX.toFixed(0)}%</b> · mirando <b>${facing === 1 ? 'derecha' : 'izquierda'}</b><br>` +
+          `pantalla <b>${power ? (paused ? 'en pausa' : 'activa') : 'apagada'}</b>`;
+      }
+
+      /* ---------------- dialogo ---------------- */
+      function say(text, hold) {
+        if (!power) return;
+        clearInterval(typeTimer);
+        clearTimeout(hideTimer);
+        gb.classList.add('is-talking');
+        setAnim('talk');
+        dialogText.textContent = '';
+        let i = 0;
+        typeTimer = setInterval(() => {
+          dialogText.textContent = text.slice(0, ++i);
+          if (i >= text.length) {
+            clearInterval(typeTimer);
+            setAnim('idle');
+            hideTimer = setTimeout(() => gb.classList.remove('is-talking'), hold || 2600);
+          }
+        }, 34);
+      }
+
+      /* ---------------- acciones ---------------- */
+      function applyPos() {
+        gb.style.setProperty('--x', posX + '%');
+        gb.style.setProperty('--flip', facing);
+        updateReadout();
+      }
+
+      /* da un paso y vuelve a idle si no se sigue pulsando */
+      function step(dir) {
+        facing = dir;
+        posX = dir === 1 ? Math.min(70, posX + 6) : Math.max(30, posX - 6);
+        setAnim('walk');
+        applyPos();
+        clearTimeout(walkTimer);
+        walkTimer = setTimeout(() => setAnim('idle'), 320);
+      }
+
+      const ACTIONS = {
+        /* 30..70 mantiene al tapir entero dentro de la pantalla: ocupa algo
+           menos del 55% del ancho, o sea ~27.5% a cada lado del centro. */
+        left() { step(-1); },
+        right() { step(1); },
+        up() {
+          clearTimeout(jumpTimer);
+          gb.style.setProperty('--jump', '-12px');
+          setAnim('jump');
+          jumpTimer = setTimeout(() => {
+            gb.style.setProperty('--jump', '0px');
+            setAnim('idle');
+          }, 300);
+        },
+        down() { paused = !paused; updateReadout(); },
+        a() { say(MESSAGES[msg++ % MESSAGES.length], 3200); },
+        b() { say(SALUDOS[Math.floor(Math.random() * SALUDOS.length)], 2600); },
+        select() { shell = (shell + 1) % SHELLS.length; loadShell(); },
+        start() {
+          power = !power;
+          gb.classList.toggle('is-off', !power);
+          if (power) say('Encendido. Hola de nuevo.', 2600);
+          else {
+            clearInterval(typeTimer);
+            clearTimeout(hideTimer);
+            gb.classList.remove('is-talking');
+          }
+          updateReadout();
+        }
+      };
+
+      function run(act, btn) {
+        if (!ACTIONS[act]) return;
+        if (!power && act !== 'start' && act !== 'select') return;
+        ACTIONS[act]();
+        if (btn) {
+          btn.classList.add('is-down');
+          setTimeout(() => btn.classList.remove('is-down'), 120);
+        }
+      }
+
+      /* ---------------- entradas ---------------- */
+      gb.querySelectorAll('.gb-btn').forEach(btn => {
+        btn.addEventListener('click', () => run(btn.dataset.act, btn));
+      });
+
+      const KEYMAP = {
+        ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+        a: 'a', A: 'a', b: 'b', B: 'b', Enter: 'start', Shift: 'select'
+      };
+      window.addEventListener('keydown', e => {
+        const act = KEYMAP[e.key];
+        if (!act) return;
+        e.preventDefault();
+        run(act, gb.querySelector(`.gb-btn[data-act="${act}"]`));
+      });
+
+      /* ---------------- swatches ---------------- */
+      SHELLS.forEach((s, i) => {
+        const b = document.createElement('button');
+        b.className = 'swatch';
+        b.type = 'button';
+        b.style.background = s.css;
+        b.title = s.id;
+        b.setAttribute('aria-label', 'Carcasa ' + s.id);
+        b.addEventListener('click', () => { shell = i; loadShell(); });
+        swatches.appendChild(b);
+      });
+
+      /* ---------------- tema ---------------- */
+      const root = document.documentElement;
+      document.getElementById('themeToggle').addEventListener('click', () => {
+        root.setAttribute('data-theme',
+          root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      });
+      const hour = new Date().getHours();
+      if (hour < 7 || hour >= 18) {
+        root.setAttribute('data-theme', 'dark');
+        shell = 1;                       // la carcasa índigo acompaña al modo noche
+      }
+
+      /* ---------------- bucle ---------------- */
+      function loop(ts) {
+        const a = cur();
+        if (power && !paused && ts - lastTick > a.ms) {
+          if (a.once && frameIdx >= a.seq.length) {
+            setAnim('idle');
+          } else {
+            showFrame(a.seq[frameIdx % a.seq.length]);
+            frameIdx++;
+          }
+          lastTick = ts;
+        }
+        requestAnimationFrame(loop);
+      }
+
+      /* ---------------- arranque ---------------- */
+      sprite.style.backgroundImage = `url("${SHEET}")`;
+      showFrame(ANIM.idle.seq[0]);
+      loadShell();
+      applyPos();
+      fit();
+      window.addEventListener('resize', fit);
+      setTimeout(() => say('Hola, soy tu Tapir guia.', 3000), 700);
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+
+</html>
