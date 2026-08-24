@@ -23,7 +23,6 @@
       color: white;
       filter: drop-shadow(0 0 10px #FFA500);
     }
-
 /* Icono cuadrado */
 
 .icon {
@@ -182,6 +181,16 @@
 
 /***********FOOTER******************/
 
+.fundadores-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.fundadores-section > * {
+  position: relative;
+  z-index: 1;
+}
+
 footer {
   position: fixed;
   bottom: 0;
@@ -213,7 +222,8 @@ footer {
 }
 
    /* Fondo con líneas tipo circuito */
-footer::before {
+footer:not(.fundadores-footer)::before,
+.fundadores-section::before {
   content: "";
   position: absolute;
   top: 0;
@@ -247,7 +257,8 @@ footer::before {
     }
 
    /* Efecto holográfico con tus colores */
-footer::after {
+footer:not(.fundadores-footer)::after,
+.fundadores-section::after {
   content: "";
   position: absolute;
   top: 0;
