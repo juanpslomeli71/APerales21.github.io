@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"try{require.resolve\\('jsdom'\\);console.log\\('jsdom disponible'\\)}catch\\(e\\){console.log\\('sin jsdom'\\)}\")",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\('jsdom', require\\('jsdom/package.json'\\).version\\)\")",
+      "Bash(node render-test.js)",
+      "Bash(node debug.js)",
+      "Bash(node -e ' *)",
+      "Bash(grep -nE \"\\(const|let|var\\) *\\\\\\\\\\\\$\" \"c:/Users/PABLO SANCHEZ/Documents/APerales21.github.io/pages/menu2.html\")",
+      "Bash(node render-test2.js)",
+      "Bash(node nav-audit.js)",
+      "Bash(node render-test3.js)"
+    ]
+  }
+}
