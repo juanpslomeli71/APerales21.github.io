@@ -181,33 +181,6 @@
     }
 
     
-    /* Fondo modo claro */
-body {
-  background: var(--bg) url('../img/day.gif') 
-              no-repeat center center fixed;
-  background-size: cover;
-  transition: background 0.6s ease, color 0.6s ease;
-}
-/* Fondo modo oscuro */
-:root[data-theme='dark'] body {
-  background: var(--bg) url('../img/not.gif') 
-              no-repeat center center fixed;
-  background-size: cover;
-}
-
-    body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: rgba(231, 231, 231, 0.2); /* capa clara */
-  z-index: -1;
-  transition: background 0.6s ease;
-}
-
-:root[data-theme='dark'] body::before {
-  background: rgba(0, 0, 0, 0.5); /* capa oscura */
-}
-
 /*  claro  */
 :root[data-theme='light'] .tooltip-text {
   background-color: rgba(0, 0, 0, 0.8);
